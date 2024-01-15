@@ -1,7 +1,6 @@
 import nodemailer from "nodemailer";
 import OrderModel from "../model/order.js";
 
-
 const transporter = nodemailer.createTransport({
   service: "Gmail",
   auth: {
@@ -9,7 +8,6 @@ const transporter = nodemailer.createTransport({
     pass: "edlxigeiubffzdms",
   },
 });
-
 
 export const Get = async (req, res) => {
   try {
@@ -85,15 +83,6 @@ export const CreateOrder = async (req, res) => {
 
 // Function to send HTML email
 const sendEmail = async (name, email, orderId) => {
-  // Create a Nodemailer transporter using SMTP
-  const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-      user: "temureshtemirov10@gmail.com",
-      pass: "edlxigeiubffzdms",
-    },
-  });
-
   // HTML email content
   const htmlMessage = `
     <p>Hello ${name},</p>
@@ -118,21 +107,23 @@ const sendEmail = async (name, email, orderId) => {
   }
 };
 
-
-
 const scheduleFollowUpEmail = (orderId, name, email) => {
   const delay = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
   setTimeout(async () => {
-    // Fetch the order details from the database (assuming you have a function for this)
-    const order = await getOrderById(orderId);
+    try {
+      // Fetch the order details from the database
+      const order = await OrderModel.findByPk(orderId);
 
-    if (order && !order.isFinished) {
-      // Send follow-up email using nodemailer
-      await sendFollowUpEmail(name, email, orderId);
+      if (order && !order.isFinished) {
+        // Send follow-up email using nodemailer
+        await sendFollowUpEmail(name, email, orderId);
 
-      // Update the order status to indicate it is finished
-      await updateOrderStatus(orderId);
+        // Update the order status to indicate it is finished
+        await updateOrderStatus(orderId);
+      }
+    } catch (error) {
+      console.error("Error scheduling follow-up email:", error);
     }
   }, delay);
 };
@@ -142,9 +133,7 @@ const updateOrderStatus = async (orderId) => {
   await OrderModel.update({ isFinished: true }, { where: { id: orderId } });
 };
 
-
 const sendFollowUpEmail = async (name, email, orderId) => {
-  // ... (similar to the sendEmail function)
   // Update the subject and content for the follow-up email
   const followUpMailOptions = {
     from: "temureshtemirov10@gmail.com",
@@ -157,6 +146,7 @@ const sendFollowUpEmail = async (name, email, orderId) => {
     `,
   };
 
+  // Send follow-up email
   try {
     await transporter.sendMail(followUpMailOptions);
     console.log("Follow-up email sent successfully");
